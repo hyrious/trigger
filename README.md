@@ -1,61 +1,79 @@
 ## Trigger
 
-Dead simple task manager written in ruby.
+Dead simple task manager written in pure ruby.
 
-```shell-session
-> ruby trigger.rb
-server running at http://localhost:4000
+Also checkout [pueue](https://github.com/Nukesor/pueue).
+
+### Install
+
+To install it as a global command, manually build & install the gem:
+
+```
+> gh repo clone hyrious/trigger
+> cd trigger
+> gem build trigger.gemspec
+> gem install trigger-0.1.0.gem
 ```
 
 ### Usage
 
-**Via Cli**
+**Simple Tasks (shell command)**
 
-```shell-session
-> ruby trigger.rb --repl
-connected to existing server at http://localhost:4000
-trigger> ls
-#1 [running] sleep 10
-#2 [stopped] echo 1
-trigger> kill 1
-#1 [stopped] sleep 10 (exit code: 1)
-trigger> cd 'some dir'
-pwd: some dir
-trigger> !ruby task.rb
-#3 [running] ruby task.rb
-trigger> kill *
-#3 [stopped] ruby task.rb (exit code: 0)
-trigger> rm 1
-removed #1
-trigger> run 2
-#2 [running] echo 1
-trigger> log 2
-1
-trigger> monit 2
-(press ctrl-c to quit monitor mode)
-1
-#2 [stopped] echo 1 (exit code: 0)
-trigger> help
-avaiable commands:
-    !<command>  run command and add it to list
-    ls          list tasks
-    cd <dir>    change dir
-    popd        change dir back
-    run <id>    kill #<id> and run that task again
-    run *       kill all tasks and run them again
-    kill <id>   kill #<id>
-    kill *      kill all tasks
-    rm <id>     kill #<id> and remove it from list
-    rm *        kill all tasks and clear the list
-    log <id>    view #<id>'s log
-    monit <id>  view #<id>'s log on the fly
-    exit        quit trigger repl
-    shutdown    shutdown server (implies kill *)
+```
+> trigger add "ls"
 ```
 
-**Via JSON-RPC and Browser**
+**Simple Tasks (ruby script)**
 
-I'm too lazy to write this section.
+```
+> trigger add rb:"require 'prime'; pp Prime.take 20"
+```
+
+**Complex Tasks (scripts)**
+
+```
+> trigger add task:name
+```
+
+Well, the task script should be written by yourself.
+This shouldn't be hard, run this command to start writing the script:
+
+```
+> trigger task add name
+# by default, it uses $EDITOR to open the script file
+# if the variable is not set, it asks for a manual operation
+```
+
+```rb
+# for example, I have several commands to run in sequence or parallel
+Trigger::Task.new do |task|
+  a = task.sh 'yarn build:something'
+  b = task.sh 'yarn build:other'
+  c = task.sh 'yarn start'
+  d = task.rb { puts "byebye" }
+  # a---.
+  #     +--c--d-->(done)
+  # b---'
+  partial = task.(a, b).(c).(d)
+  # to ignore a failure of a task, use task.pass { ... }
+  e = task.pass { task.sh 'yarn lint' }
+  # or its alias:
+  e = task.sh? 'yarn lint'
+  # a---.
+  # b---+-c--d-->(done)
+  # e---'
+  partial.insert_before(e, c) # insert e before c, parallel by default
+end
+```
+
+### FAQ
+
+<dl>
+    <dt>Name</dt>
+    <dd>Just a random word.</dd>
+    <dt>Why not publish to RubyGems?</dt>
+    <dd>Not found a good name.</dd>
+</dl>
 
 ### License
 
